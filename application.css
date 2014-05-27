@@ -8,11 +8,12 @@
  * You're free to add application-wide styles to this file and they'll appear at the top of the
  * compiled file, but it's generally better to create a new file per style scope.
  *
- *= require_self
- *= require_tree .
+
+
  *
- *= require rep.faceting
+
  */
+
 
 body {font-family: Trebuchet MS, Helvetica, Arial, sans serif; font-size: 10pt; margin: 0em; background: white;}
 
@@ -38,3 +39,135 @@ form { float:left; clear: none; }
 #navigation li { list-style-type: none; display: inline; }
 #navigation li a { text-decoration: none; padding: 7px 10px; color: #000; }
 #navigation .selected { text-decoration: underline; }
+/* TipTip CSS - Version 1.2 */
+
+#tiptip_holder {
+	display: none;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 99999;
+}
+
+#tiptip_holder.tip_top {
+	padding-bottom: 5px;
+}
+
+#tiptip_holder.tip_bottom {
+	padding-top: 5px;
+}
+
+#tiptip_holder.tip_right {
+	padding-left: 5px;
+}
+
+#tiptip_holder.tip_left {
+	padding-right: 5px;
+}
+
+#tiptip_content {
+	font-size: 11px;
+	color: #fff;
+	text-shadow: 0 0 2px #000;
+	padding: 4px 8px;
+	border: 1px solid rgba(255,255,255,0.25);
+	background-color: rgb(25,25,25);
+	background-color: rgba(25,25,25,0.92);
+	background-image: -webkit-gradient(linear, 0% 0%, 0% 100%, from(transparent), to(#000));
+	border-radius: 3px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	box-shadow: 0 0 3px #555;
+	-webkit-box-shadow: 0 0 3px #555;
+	-moz-box-shadow: 0 0 3px #555;
+}
+
+#tiptip_arrow, #tiptip_arrow_inner {
+	position: absolute;
+	border-color: transparent;
+	border-style: solid;
+	border-width: 6px;
+	height: 0;
+	width: 0;
+}
+
+#tiptip_holder.tip_top #tiptip_arrow {
+	border-top-color: #fff;
+	border-top-color: rgba(255,255,255,0.35);
+}
+
+#tiptip_holder.tip_bottom #tiptip_arrow {
+	border-bottom-color: #fff;
+	border-bottom-color: rgba(255,255,255,0.35);
+}
+
+#tiptip_holder.tip_right #tiptip_arrow {
+	border-right-color: #fff;
+	border-right-color: rgba(255,255,255,0.35);
+}
+
+#tiptip_holder.tip_left #tiptip_arrow {
+	border-left-color: #fff;
+	border-left-color: rgba(255,255,255,0.35);
+}
+
+#tiptip_holder.tip_top #tiptip_arrow_inner {
+	margin-top: -7px;
+	margin-left: -6px;
+	border-top-color: rgb(25,25,25);
+	border-top-color: rgba(25,25,25,0.92);
+}
+
+#tiptip_holder.tip_bottom #tiptip_arrow_inner {
+	margin-top: -5px;
+	margin-left: -6px;
+	border-bottom-color: rgb(25,25,25);
+	border-bottom-color: rgba(25,25,25,0.92);
+}
+
+#tiptip_holder.tip_right #tiptip_arrow_inner {
+	margin-top: -6px;
+	margin-left: -5px;
+	border-right-color: rgb(25,25,25);
+	border-right-color: rgba(25,25,25,0.92);
+}
+
+#tiptip_holder.tip_left #tiptip_arrow_inner {
+	margin-top: -6px;
+	margin-left: -7px;
+	border-left-color: rgb(25,25,25);
+	border-left-color: rgba(25,25,25,0.92);
+}
+
+/* Webkit Hacks  */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+	#tiptip_content {
+		padding: 4px 8px 5px 8px;
+		background-color: rgba(45,45,45,0.88);
+	}
+	#tiptip_holder.tip_bottom #tiptip_arrow_inner {
+		border-bottom-color: rgba(45,45,45,0.88);
+	}
+	#tiptip_holder.tip_top #tiptip_arrow_inner {
+		border-top-color: rgba(20,20,20,0.92);
+	}
+}
+/* facet count classes */
+
+
+.rep                              { position: relative; } /* for loading mask */
+.rep .facet                       { width:240px; border: 1px solid #CCC; color: #000099; margin-bottom: 0.2em; margin-top: 0.2em; }
+.rep .facet .title                { font-size:10pt; border-bottom: 1px solid #CCC; background: #F4F4F4; color: black; padding: 0.3em; margin: 0; }
+.rep .facet .title .controls      { float: right; }
+.rep .facet .title .controls span { cursor: pointer; margin-left: 5px; color: gray;}
+.rep .facet .selected             { color: #aaaadd; }
+.rep .facet .nesting              { padding: 0.3em; min-height: 1em; border-bottom: 1px dotted #CCC; }
+.rep .facet .nesting .selected    { color: #000099; }
+.rep .facet .values               { font-size: 9pt; padding: 0.3em; margin: 0; height: 10em; overflow: auto; position:relative; }
+.rep .facet .values .value        { padding-top: 0.1em; padding-bottom: 0.1em; width:95%;}
+.rep .facet .values .value .count { position: relative; left: 0; width: 2.0em; text-align: right; padding-right:5px; color: #aaaadd; float:left; }
+.rep .facet .values .value .label { position: relative; left: 0.5em;}
+.rep .facet .values .value .label:hover,
+.rep .facet .nesting_level:hover  { cursor: pointer; text-decoration: underline; }
+.loading .spinner                 { background: url(/assets/repertoire-faceting/spinner_sm.gif) no-repeat left center; float:right; min-height:15px; min-width:15px;}
+.loading .mask                    { background: rgba(255, 255, 255, 0.6); position:absolute; top:0; left:0; width: 100%; height: 100%; }
