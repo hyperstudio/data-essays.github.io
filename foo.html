@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+    <title></title>
+        <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    </head>
+    <body>
+      
+      <div id="test1">Trying from CORS-enabled: </div>
+      <div id="test2">Trying from non-CORS-enabled: </div>
+
+        <script type="text/javascript" >
+          $(document).ready(function () {
+            
+            var url1 = "http://repertoire-faceting-varbit.herokuapp.com/nobelists/counts/nobel_year",
+                url2 = "http://facet-test.herokuapp.com/registers/counts/weekday";
+
+            $.get(url1, function (data) { $("#test1").append(JSON.stringify(data)); });
+            $.get(url2, function (data) { $("#test2").append(JSON.stringify(data)); });
+          });
+
+        </script>
+
+    </body>
+</html>

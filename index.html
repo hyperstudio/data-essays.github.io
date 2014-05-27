@@ -1,0 +1,46 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us">
+  <head>
+    <title>Demo Facet Application</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  	  <link href="http://repertoire-faceting-varbit.herokuapp.com/assets/application.css" media="screen" rel="stylesheet" />
+	    <script src="http://repertoire-faceting-varbit.herokuapp.com/assets/application.js"></script>
+  </head>
+  <body>
+
+<script language="javascript">
+$().ready(function() {
+  // Prefix identifies faceting server for all ajax calls
+  repertoire.defaults = { path_prefix: 'http://repertoire-faceting-varbit.herokuapp.com' };
+
+  $('#nobelists').facet_context(function() {
+    return { search: $("#search").val() }
+  });
+  $('.facet').facet();
+  $('.nested_facet').nested_facet();
+  $('#results').results();
+
+  $('#nobelists').urls(function(json) {
+    $("#search").val(json.search);
+  });
+});
+</script>
+
+<form>
+Search: <input id='search' name='search' type='text' value='<%= @search %>'/>
+</form>
+
+<div id='info'>Repertoire Faceting - CSOR demo<br/>(If the faceting JSON server is up, the ajax UI will load in this page...)</div>
+
+<div id='nobelists'>
+  <div class='left'>
+    <div id='discipline' class='facet'></div>
+    <div id='nobel_year' class='facet' title='Year Awarded'></div>
+    <div id='degree' class='facet' title='Degree at MIT'></div>
+  </div>
+  <div id='results'></div>
+  <div class='right'>
+    <div id='birth_place' class='nested_facet' title='Birth Place'></div>
+    <div id='birth_decade' class='facet' title='Birth Decade'></div>
+  </div>
+</div>
