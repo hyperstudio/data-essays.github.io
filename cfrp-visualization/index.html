@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<meta charset="utf-8" http-equiv="Content-Language" content="fr" />
+<title>Com&#233;die-Fran&#231;aise Registers Project, 1681-1793</title>
+<style>
+
+body {
+  font: 11px sans-serif;
+}
+
+.days path,
+.weeks path,
+.months path {
+  stroke: #fff;
+  stroke-width: 1px;
+}
+
+.months text {
+  font-size: 7px;
+}
+
+.axis text {
+  font-size: 4px;
+  font-weight: 100;
+}
+
+</style>
+<body>
+<script src="d3.v3.min.js"></script>
+<script src="colorbrewer.v1.min.js"></script>
+<script>
+
+var monthNames = ["janvier", "février", "mars", "avril", "mai", "juin", 
+                  "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+var width = 450,
+    height = 400,
+    radius = Math.min(width, height) / 2;
+
+var format = d3.time.format("%Y-%m-%d"),
+    shortFormat = d3.time.format("%d %B"),
+    numFormat = d3.format("0,000");
+        
+/* map everything onto a 1904 - a leap year */
+var beginDate = format.parse('1904-01-01'),
+    endDate = format.parse('1905-01-01');
+    
+var rotation = Math.PI,
+    rScale = d3.time.scale()
+               .domain([beginDate, endDate])
+               .range([2.0 * Math.PI + rotation, rotation]),
+    colors = colorbrewer.RdYlBu[9],
+    colorScale = d3.scale.quantile().range(colors);
+
+var rings = { months : {
+                agg : function(d) { return d.date.getMonth(); },
+                deagg : function(month) { return d3.time.month.offset(beginDate, month); },
+                arc : d3.svg.arc().outerRadius(radius - 70)
+                                  .innerRadius(radius - 90),
+                title : function(d) { return monthNames[+d.key] + " : " + numFormat(d.values) + " billets"; },
+                label : function(d) { return monthNames[+d.key] } },
+              weeks : {
+                agg : function(d) { return Math.min(52, d3.time.weekOfYear(d.date)); },
+                deagg : function(week) { return d3.time.week.offset(beginDate, week); },
+                arc : d3.svg.arc().outerRadius(radius - 40)
+                                  .innerRadius(radius - 60),
+                title : function(d) { return "semaine " + (+d.key + 1) + " : " + numFormat(d.values) + " billets"; } },
+              days : {
+                agg : function(d) { return Math.min(365, d3.time.dayOfYear(d.date)); },
+                deagg : function(day) { return d3.time.day.offset(beginDate, day); },
+                arc : d3.svg.arc().outerRadius(radius - 10)
+                                  .innerRadius(radius - 30),
+                title : function(d) { var date = d3.time.day.offset(beginDate, +d.key);
+                                        return date.getDate() + " " + monthNames[date.getMonth()] + " : " + numFormat(d.values) + " billets"; } },
+            };
+
+/* drawing surface */
+            
+var canvas = d3.select("body").append("svg")
+               .attr("width", width)
+               .attr("height", height)
+
+var svg = canvas.append("g")
+     .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+
+/* legend */
+var lg = canvas.selectAll(".legend")
+       .data(colors)
+     .enter().append("g")
+       .attr("class", "legend");
+
+lg.append("rect")
+  .attr("x", 10)
+  .attr("y", function (d, ndx) { return 10 + 10 * (9 - ndx); })
+  .attr("width", 10)
+  .attr("height", 10)
+  .style("fill", function (d) { return d; });
+  
+/* axes */  
+
+var degrScale = function(d) { return (rScale(d) * 180 / Math.PI - 90); };
+
+var ticks = svg.append("g")
+    .attr("class", "axis")
+  .selectAll("g")
+    .data(rScale.ticks(d3.time.day, 7))
+  .enter().append("g")
+    .attr("transform", function(d) { return "rotate(" + degrScale(d) + ")"; });
+
+ticks.append("text")
+    .attr("x", radius)
+    .attr("dy", "0.35em")
+    .style("text-anchor", function(d) { return degrScale(d) < 270 && degrScale(d) > 90 ? "end" : null; })
+    .attr("transform", function(d) { return degrScale(d) < 270 && degrScale(d) > 90 ? "rotate(180 " + radius + ",0)" : null; })
+    .text(function(d) { return d.getDate(); });
+
+/* data and visualization proper */
+
+d3.csv("data.csv", function(error, data) {
+    
+    /* massage data into good format */
+    data.forEach(function (d) { d.date = format.parse(d.date);
+                                d.tickets = +d.tickets; });
+    data = data.filter(function (d) { return d.date && d.tickets; });
+
+    /* process each ring */
+    for (var i in rings) {
+      var ring = rings[i],
+          aggData = d3.nest().key(ring.agg)
+                        .rollup(function (xs) { return d3.sum(xs, function(d) { return d.tickets; }) })
+                        .entries(data);
+          ringColors = colorScale.copy().domain(d3.extent(aggData, function(d) { return d.values; }));
+
+      var g = svg.selectAll("." + i)
+          .data(aggData)
+        .enter().append("g")
+          .attr("class", i);
+
+      var path = g.append("path")
+          .attr("id", function(d, ndx) { return i + ndx; })
+          .attr("d", ring.arc.startAngle( function(d) { return rScale(ring.deagg(+d.key)); })
+                             .endAngle(   function(d) { return rScale(ring.deagg(+d.key + 1)); }))
+          .style("fill", function(d) { return ringColors(d.values); });
+
+      if (ring.title) {
+        g.append("title").text(function(d) { return ring.title(d); });
+      };
+
+      if (ring.label) {
+        g.append("text")
+            .attr("x", 6)
+            .attr("dy", 15)
+          .append("textPath")
+            .attr("xlink:href", function(d, ndx) { return "#" + i + ndx; })
+            .text(function(d) { return ring.label(d); });
+      };
+    };
+  });
+</script>
