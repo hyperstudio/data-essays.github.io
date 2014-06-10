@@ -15,12 +15,12 @@ body {
 }
 
 .months text {
-  font-size: 7px;
+  font-size: 11px;
 }
 
 .axis text {
-  font-size: 4px;
-  font-weight: 100;
+  font-size: 7px;
+  font-weight: 300;
 }
 
 </style>
@@ -32,8 +32,8 @@ body {
 var monthNames = ["janvier", "février", "mars", "avril", "mai", "juin", 
                   "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
-var width = 450,
-    height = 400,
+var width = 800,
+    height = 600,
     radius = Math.min(width, height) / 2;
 
 var format = d3.time.format("%Y-%m-%d"),
@@ -54,21 +54,21 @@ var rotation = Math.PI,
 var rings = { months : {
                 agg : function(d) { return d.date.getMonth(); },
                 deagg : function(month) { return d3.time.month.offset(beginDate, month); },
-                arc : d3.svg.arc().outerRadius(radius - 70)
-                                  .innerRadius(radius - 90),
+                arc : d3.svg.arc().outerRadius(radius - 90)
+                                  .innerRadius(radius - 120),
                 title : function(d) { return monthNames[+d.key] + " : " + numFormat(d.values) + " billets"; },
                 label : function(d) { return monthNames[+d.key] } },
               weeks : {
                 agg : function(d) { return Math.min(52, d3.time.weekOfYear(d.date)); },
                 deagg : function(week) { return d3.time.week.offset(beginDate, week); },
-                arc : d3.svg.arc().outerRadius(radius - 40)
-                                  .innerRadius(radius - 60),
+                arc : d3.svg.arc().outerRadius(radius - 50)
+                                  .innerRadius(radius - 80),
                 title : function(d) { return "semaine " + (+d.key + 1) + " : " + numFormat(d.values) + " billets"; } },
               days : {
                 agg : function(d) { return Math.min(365, d3.time.dayOfYear(d.date)); },
                 deagg : function(day) { return d3.time.day.offset(beginDate, day); },
                 arc : d3.svg.arc().outerRadius(radius - 10)
-                                  .innerRadius(radius - 30),
+                                  .innerRadius(radius - 40),
                 title : function(d) { var date = d3.time.day.offset(beginDate, +d.key);
                                         return date.getDate() + " " + monthNames[date.getMonth()] + " : " + numFormat(d.values) + " billets"; } },
             };
@@ -90,9 +90,9 @@ var lg = canvas.selectAll(".legend")
 
 lg.append("rect")
   .attr("x", 10)
-  .attr("y", function (d, ndx) { return 10 + 10 * (9 - ndx); })
-  .attr("width", 10)
-  .attr("height", 10)
+  .attr("y", function (d, ndx) { return 20 + 22 * (9 - ndx); })
+  .attr("width", 20)
+  .attr("height", 20)
   .style("fill", function (d) { return d; });
   
 /* axes */  

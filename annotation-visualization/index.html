@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: auto;
+  position: relative;
+  width: 960px;
+}
+
+text {
+  font: 10px sans-serif;
+}
+
+.bar rect {
+  fill: lightsteelblue;
+}
+
+.bar.focus rect {
+  fill: steelblue;
+}
+
+.tower .count {
+  opacity: 0.2;
+  fill: black;
+  display: block;
+}
+
+.bar:hover .group {
+  fill: black;
+  display: block;
+}
+
+.bar .group,
+.bar .count {
+  display: none;
+}
+
+.axis {
+  font: 10px sans-serif;
+  pointer-events: none;    // keep axis from eating mouseover events when it covers bars
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: black;
+  shape-rendering: crispEdges;
+}
+
+.y.axis .domain {
+  stroke: black;
+  opacity: 1.0;
+}
+
+.y.axis path,
+.y.axis line {
+  fill: none;
+  stroke: lightgrey;
+  opacity: 0.2;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+/*
+
+The following MapReduce query generates data for this visualisation:
+
+var mapfn = function() {
+  var groups = this.groups || [ 'No group' ];
+  var date = this.created || this.updated;
+
+  if (!date) { return; }
+
+  date = new Date(date);
+  groups.forEach(function (group) {
+    emit( { year : date.getFullYear(),
+            month : date.getMonth(),
+            group : group } ,
+          { count : 1 }
+        );
+  });
+};
+
+var mapfn2 = function() {
+  emit( { year : this._id.year, 
+          month : this._id.month }, 
+        { group : this._id.group, 
+          count : this.value.count } );
+};
+
+var reducefn = function(key, values) {
+  var count = 0;
+
+  values.forEach(function(v) {
+    count += v['count'];
+  });
+
+  return {count: count};
+}
+
+var reducefn2 = function(key, values) {
+  var obj = {};
+  values.forEach(function (d) {
+    obj[d.group] = d.count;
+  });
+
+  return obj;
+}
+
+var cleanupfn = function(d) {
+  return { year : d._id.year,
+           month : d._id.month,
+           counts : d.value };
+}
+
+db.count_results.remove();
+
+db.annotations.mapReduce(mapfn, reducefn, {out : 'count_results'});
+db.count_results.mapReduce(mapfn2, reducefn2, {out : { inline : 1 } }).results.map(cleanupfn);
+
+*/
+
+
+var data = [
+  /* {
+    "year" : NaN,
+    "month" : NaN,
+    "counts" : {
+      "21F.414" : 3,
+      "21L.000" : 4,
+      "21L.003" : 13,
+      "21L.448J" : 19,
+      "CMS" : 2,
+      "Fall 2012" : 1,
+      "Testing" : 7
+    }
+  }, */
+  {
+    "year" : 2012,
+    "month" : 8,
+    "counts" : {
+      "21F.414" : 73,
+      "21L.000" : 4,
+      "21L.000J" : 513,
+      "21L.003" : 468,
+      "21L.448" : 8,
+      "21L.448J" : 464,
+      "21W.041J" : 31,
+      "Fall 2012" : 17,
+      "Testing" : 17
+    }
+  },
+  {
+    "year" : 2012,
+    "month" : 9,
+    "counts" : {
+      "21L.000" : 16,
+      "21L.000J" : 357,
+      "21L.003" : 213,
+      "21L.448J" : 159,
+      "Testing" : 1
+    }
+  },
+  {
+    "year" : 2012,
+    "month" : 10,
+    "counts" : {
+      "21F-414" : 13,
+      "21F.414" : 7,
+      "21L.000" : 1,
+      "21L.000J" : 260,
+      "21L.003" : 162,
+      "21L.448J" : 80,
+      "Fall 2012" : 6,
+      "Testing" : 19,
+      "group-1" : 2
+    }
+  },
+  {
+    "year" : 2012,
+    "month" : 11,
+    "counts" : {
+      "21F.414" : 2,
+      "21L.000J" : 25,
+      "21L.003" : 1,
+      "Fall 2012" : 2,
+      "Testing" : 2
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 0,
+    "counts" : {
+      "No group" : 52,
+      "ans-iap" : 1,
+      "digital margins" : 1,
+      "public" : 1
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 1,
+    "counts" : {
+      "2013" : 2,
+      "21F-414" : 2,
+      "21F.414" : 2,
+      "21L.000" : 2,
+      "21L.000J" : 4,
+      "21L.003" : 4,
+      "21L.006" : 11,
+      "21L.448J" : 4,
+      "Fall 2012" : 2,
+      "No group" : 908,
+      "Testing" : 4,
+      "ans-iap" : 9,
+      "group-1" : 4,
+      "public" : 10,
+      "spring" : 2
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 2,
+    "counts" : {
+      "2013" : 26,
+      "" : 3,
+      "21F-414" : 7,
+      "21F.414" : 2,
+      "21F.S01" : 341,
+      "21L.000" : 6,
+      "21L.000J" : 24,
+      "21L.003" : 38,
+      "21L.003.03" : 982,
+      "21L.004" : 27,
+      "21L.006" : 379,
+      "21L.448J" : 9,
+      "21L.501" : 168,
+      "21L501" : 10,
+      "Fall 2012" : 2,
+      "MEL Camp" : 59,
+      "No group" : 126,
+      "Testing" : 25,
+      "ans-iap" : 312,
+      "group-1" : 2,
+      "public" : 323,
+      "spring" : 26,
+      "workshop" : 4
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 3,
+    "counts" : {
+      "2013" : 5,
+      "21F.S01" : 119,
+      "21L.003" : 22,
+      "21L.004.02" : 19,
+      "21L.006" : 46,
+      "21L.501" : 294,
+      "21L501" : 10,
+      "21W.761" : 33,
+      "MEL Camp" : 112,
+      "Sweet_Tea" : 19,
+      "Unwriting the Book" : 55,
+      "ans-iap" : 41,
+      "public" : 49,
+      "spring" : 5
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 4,
+    "counts" : {
+      "2013" : 1,
+      "21L.006" : 7,
+      "21L.501" : 9,
+      "Feldforschung" : 36,
+      "MEL Camp" : 14,
+      "Unwriting the Book" : 1,
+      "ans-iap" : 14,
+      "gordis-barnard" : 7,
+      "public" : 46,
+      "spring" : 1
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 5,
+    "counts" : {
+      "Feldforschung" : 1156,
+      "MEL Camp" : 2,
+      "Scholars&#x27; Collaborative" : 1,
+      "ans-iap" : 2,
+      "gordis-barnard" : 2,
+      "public" : 26
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 6,
+    "counts" : {
+      "Feldforschung" : 1,
+      "FinalsClub" : 1,
+      "MEL Camp" : 7,
+      "fc" : 1,
+      "public" : 20
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 7,
+    "counts" : {
+      "Feldforschung" : 30,
+      "MEL Camp" : 4,
+      "public" : 14
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 8,
+    "counts" : {
+      "2013" : 20,
+      "21F.420 FS13" : 100,
+      "21L.000J" : 9,
+      "21L.003" : 9,
+      "21L.006" : 9,
+      "21L.501" : 9,
+      "21L.705" : 44,
+      "21W.747.02" : 5,
+      "Demos" : 4,
+      "Friday" : 4,
+      "MEL Camp" : 10,
+      "Unwriting the Book" : 20,
+      "ans-iap" : 1,
+      "gordis-barnard" : 1,
+      "isabell" : 58,
+      "isbell" : 7,
+      "kelley-fall-2013" : 15,
+      "lane-fall-2013" : 5,
+      "public" : 65,
+      "spring" : 20,
+      "test" : 2
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 9,
+    "counts" : {
+      "21F.420 FS13" : 162,
+      "21L.000J" : 86,
+      "21L.003" : 86,
+      "21L.006" : 86,
+      "21L.501" : 86,
+      "21L.705" : 76,
+      "MEL Camp" : 5,
+      "ans-iap" : 29,
+      "gordis-barnard" : 96,
+      "kelley-fall-2013" : 21,
+      "public" : 137
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 10,
+    "counts" : {
+      "21F.019" : 1,
+      "21F.420 FS13" : 82,
+      "21L.000" : 11,
+      "21L.000J" : 23,
+      "21L.003" : 23,
+      "21L.006" : 12,
+      "21L.501" : 12,
+      "21L.705" : 23,
+      "21W.747.02" : 1,
+      "MEL Camp" : 10,
+      "ans-iap" : 16,
+      "gordis-barnard" : 118,
+      "kelley-fall-2013" : 16,
+      "lane-fall-2013" : 1,
+      "public" : 197
+    }
+  },
+  {
+    "year" : 2013,
+    "month" : 11,
+    "counts" : {
+      "21F.420 FS13" : 47,
+      "21L.705" : 23,
+      "MEL Camp" : 1,
+      "admins" : 5,
+      "kelley-fall-2013" : 22,
+      "public" : 10
+    }
+  },
+  {
+    "year" : 2014,
+    "month" : 0,
+    "counts" : {
+      "21H.009" : 4,
+      "21L.000J" : 14,
+      "21L.003" : 14,
+      "21L.006" : 2,
+      "21L.501" : 2,
+      "21L.705" : 2,
+      "EGL204s14" : 17,
+      "Feldforschung" : 5,
+      "MEL Camp" : 23,
+      "RNSTest" : 7,
+      "Spring 2014 Hist-156B" : 1,
+      "ans-iap" : 2,
+      "digital margins" : 126,
+      "flowerb" : 4,
+      "french" : 9,
+      "history" : 9,
+      "isabell" : 4,
+      "isbell" : 4,
+      "kurt" : 3,
+      "lipkowitz" : 8,
+      "public" : 224,
+      "ravel" : 8,
+      "recipes" : 24
+    }
+  },
+  {
+    "year" : 2014,
+    "month" : 1,
+    "counts" : {
+      "154 AMerican Lit" : 149,
+      "21F.416 S14" : 1,
+      "21F.703" : 3,
+      "21L.000J" : 1,
+      "21L.003" : 1,
+      "21L.006" : 1,
+      "21L.501" : 1,
+      "21L000-S14" : 79,
+      "Baruch" : 1,
+      "CAS WR 100 B2 Spring 2014" : 23,
+      "CCR2SP14" : 46,
+      "CMS.633 S14" : 153,
+      "EGL204s14" : 275,
+      "FFD2014" : 1,
+      "Feldforschung" : 3,
+      "MEL Camp" : 1,
+      "No group" : 5,
+      "RNSTest" : 3,
+      "Reading Cookbooks" : 46,
+      "WR100B1/B2" : 10,
+      "WR100B1/B2Group1" : 60,
+      "WR100B1/B2Group2" : 23,
+      "WR100B1/B2Group3" : 31,
+      "WR100B1/B2Group4" : 13,
+      "WR100B1/B2Group5" : 34,
+      "WR100B1/B2Group6" : 4,
+      "WR100B1/B2Group7" : 20,
+      "WR100B1/B2Group8" : 26,
+      "WR100B1/Group1" : 10,
+      "WR100B2Group2" : 3,
+      "admins" : 2,
+      "ans-iap" : 2,
+      "digital margins" : 3,
+      "f21" : 2,
+      "french" : 1,
+      "history" : 1,
+      "kompost" : 12,
+      "kurt" : 3,
+      "lipkowitz" : 1,
+      "public" : 523,
+      "ravel" : 1,
+      "recipes" : 1,
+      "screenreading" : 45
+    }
+  },
+  {
+    "year" : 2014,
+    "month" : 2,
+    "counts" : {
+      "154 AMerican Lit" : 72,
+      "21F.416" : 5,
+      "21F.416 S14" : 53,
+      "21F.420 FS13" : 17,
+      "21F.703" : 52,
+      "21L.000J" : 5,
+      "21L.705" : 5,
+      "21L000-S14" : 37,
+      "CMS.633 S14" : 60,
+      "EGL204s14" : 57,
+      "Grettir" : 12,
+      "MEL Camp" : 3,
+      "Reading Cookbooks" : 118,
+      "Thursday Demo" : 2,
+      "WR100B1/B2Group3" : 2,
+      "WR100B1/B2Group6" : 9,
+      "french" : 1,
+      "history" : 1,
+      "lipkowitz" : 1,
+      "public" : 260,
+      "ravel" : 1,
+      "recipes" : 1,
+      "sts028" : 5
+    }
+  }
+]
+
+// every javascript has its monkey patch...
+
+String.prototype.hashCode = function(){
+    var hash = 0, i, char;
+    if (this.length == 0) return hash;
+    for (i = 0, l = this.length; i < l; i++) {
+        char  = this.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+};
+
+// beginning of visualization proper
+
+var margin = {top: 20, right: 20, bottom: 60, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .3);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var ticker = function(s) {
+  var match = /(...)$/.exec(s);
+  if (match[0] == 'Jan') { return s; }
+  else { return match[0]; }
+};
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(ticker);
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .tickSize(-width, 0, 0)
+    .ticks(10);
+
+var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", (height * 2) + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+
+/*
+
+Enclose this block once data is retrieved dynamically from mongo....
+
+d3.json("live-annotations-3-20-2014.json", function(error, data) {
+*/
+
+  // utility functions for formatting
+
+  var monthoffset = function(month, year) {
+    var months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+    return (+year) + " " + (months[+month]);
+  }
+
+  var iterate_months = function(start, end) {
+    labels = [];
+    for(var i = +start.year * 12 + +start.month; i <= (+end.year * 12 + +end.month); i++) {
+      labels.push(monthoffset(i % 12, Math.floor(i / 12)));
+    }
+    return labels;
+  }
+
+  // from here, we are re-munging data into a visually-attractive format
+
+  // work with d3 dictionaries instead of javascript objects in counts
+  // then, sort the annotations in descending order of size
+  var items = data.map(function (rec) {
+    rec.counts = d3.entries(rec.counts);
+    rec.counts.sort(function(a, b) { return +b.value - +a.value; });
+    return rec; 
+  });
+
+  // set the domain based on month span / sum of all bars in a tower
+  x.domain(iterate_months(items[0], items[items.length-1]));
+  y.domain([0, d3.max(items, function(d0) { 
+    return d3.sum(d0.counts, function (d1) { return d1.value; });
+  })]);
+
+  // combine bars below the threshold into "Other"
+  var min_block_height = 8;
+  
+
+
+  // calculate offsets for the stacked bars within each tower
+  items = items.map(function (rec) {
+    var offset = 0;
+    rec.counts = rec.counts.map(function(cnt) {
+      cnt.offset = offset;
+      offset = offset + +cnt.value;
+      return cnt;
+    });
+    return rec;
+  });
+
+  // the Y axis & label
+
+  var y_axis = svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis);
+
+  var y_label = svg.append("g")
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Annotations Made");
+
+  // adjust the axes for a given baseline
+
+  var shift_towers = function(group, baseline, transition) {
+    baseline = baseline || 0;
+    var y_axis_shift = y(baseline) - y(0);
+    var x_axis_local = x_axis;
+    var y_axis_local = y_axis;
+    if (transition) {
+      x_axis_local = x_axis_local.transition().delay(300);
+      y_axis_local = y_axis_local.transition().delay(300);
+      if (baseline) {
+        x_axis_local.duration(1200); 
+        y_axis_local.duration(1200);
+      }
+    }
+    x_axis_local.attr("transform", "translate(0," + (height + y_axis_shift) + ")");
+    y_axis_local.attr("transform", "translate(0," + y_axis_shift + ")");
+
+    // alter all towers that have a levelled bar for given group at baseline
+    var towers = svg.selectAll(".tower");
+    if (transition) { towers = towers.transition().duration(600); };
+
+    var findlocal = function (d0) { return d0.counts.filter(function (d1) { return d1.key == group })[0]; }
+
+    towers.select(".count").text(function (d) { 
+      if (group) {
+        var localbucket = findlocal(d);
+        if (localbucket) { return localbucket.value; }
+      }
+      return "";
+    });
+    // should turn off by a class, but svg/d3 error on this
+
+    towers.attr("transform", function(d) { 
+      var xloc = x(monthoffset(d.month, d.year));
+      var yloc = 0;
+      if (group) {
+        var localbucket = findlocal(d);
+        if (localbucket) { yloc = y(baseline) - y(localbucket.offset); };
+      }
+      return "translate(" + xloc + "," + yloc + ")" });
+  };
+
+  var focus = function(group) {
+    if (group) {
+      var id = "G" + group.hashCode();
+      svg.selectAll(".bar." + id).classed("focus", true);
+    } else {
+      svg.selectAll(".bar.focus").classed("focus", false);
+    }
+  }
+
+  var compact_bar = function(d, threshold) {
+    return threshold > y(d.offset) - y(d.offset + d.value);
+  }
+
+  var towers = svg.append("g")
+    .selectAll(".tower")
+      .data(items)
+    .enter().append("g")
+      .attr("class", "tower");
+
+  towers.append("text")
+       .attr("class", "count")
+       .attr("x", 0)
+       .attr("y", function(d) { var d_last = d.counts[d.counts.length-1]; return y(d_last.offset + d_last.value) })
+       .attr("dx", "1.5em")
+       .attr("dy", "-1.0em")
+       .style("text-anchor", "middle")
+       .text("0");                        // filled in dynamically
+
+  var bars = towers.selectAll("bar")
+       .data(function (d, i) { return d.counts })
+      .enter().append("g")
+       .attr("class", function(d) { return "bar G" + d.key.hashCode() });
+
+  bars.append("rect")
+       .attr("x", 0 )
+       .attr("width", x.rangeBand())
+       .attr("y", function(d) { return y(d.offset + d.value) })
+       .attr("height", function(d) { return y(d.offset) - y(d.offset + d.value) })
+       .on("mouseover", function (d) { focus(d.key);     shift_towers(d.key, d.offset, true) })
+       .on("mouseout", function(d)   { focus(undefined); shift_towers(undefined, undefined, true) });
+
+  bars.append("text")
+       .attr("class", "group")
+       .attr("transform", "rotate(-90)")
+       .attr("x", function(d) { return -y(d.offset + d.value) })
+       .attr("y", -10)
+       .attr("dy", ".71em")
+       .style("text-anchor", function (d) { 
+         // rough approximation : only write labels alongisde bars that are long enough
+         // TODO. base it on the actual label text length
+         return compact_bar(d, 25) ? "start" : "end" })
+       .text(function (d) { return d.key });
+
+  var x_axis = svg.append("g")
+       .attr("class", "x axis")
+       .attr("transform", "translate(0," + height + ")");
+
+  x_axis.append("rect")
+       .attr("x", 0)
+       .attr("y", 0)
+       .attr("width", width)
+       .attr("height", height)
+       .attr("fill", "white")
+       .attr("opacity", 0.6);
+      
+  x_axis.call(xAxis);
+
+  x_axis.selectAll("text")
+      .attr("y", 0)
+      .attr("x", -15)
+      .attr("dy", ".35em")
+      .attr("transform", "rotate(-90)")
+      .style("text-anchor", "end");
+
+  // move towers into default location
+  shift_towers(undefined, undefined, false);
+
+//});
+
+</script>
+</body>
