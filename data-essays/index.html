@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<meta charset="utf-8" http-equiv="Content-Language" content="fr" />
+<html>
+<title>Data Essays Model &amp; Documentation</title>
+<script src="d3.v3.min.js"></script>
+<style>
+
+body {
+  font: 12px sans-serif;
+}
+
+.author_chart {
+  float: left;
+}
+
+.author_chart.loading {
+  background: url(/assets/repertoire-faceting/spinner_lg.gif) no-repeat center center;
+}
+
+.multiples {
+  overflow:auto;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: brown;
+}
+
+.axis {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+</style>
+
+<body>
+
+<h3>This page documents the following use case for the CFRP data set:</h3>
+
+<p><q>...I am pointing to a use case we’ve got in mind for the public facing CFRP website in which a researcher can perform a faceted search (or several) on the rails app, grab a json feed of the results (a link on the fb that makes that simple would be great), and place a graph (or several) on a page another site to visualize the results. We are aiming for that second site to be a venue for sharing case studies, or data essays, which would demonstrate the utility of the data set and the tools.</q></p>
+
+<p><q>The goal is to have a few more well-documented examples of different applications of the faceted browser, conjoined with D3, which we could hand off to incoming RAs, so that they can pick this up and run with it.</q></p>
+
+<p>Here is an example of three "small multiples" D3 visualizations, each showing a JSON dataset produced by the faceted browser.  Each data set is limited only by play author - otherwise, the filtering and aggregation is done in D3.</p>
+
+<div class="multiples">
+  <svg class="author_chart loading"
+       title="Corneille"
+       data-url="/data-essays/corneille.json"/>
+
+  <svg class="author_chart loading"
+       title="Molière"
+       data-url="/data-essays/moliere.json"/>
+
+  <svg class="author_chart loading"
+       title="Voltaire"
+       data-url="/data-essays/voltaire.json"/>
+</div>
+
+<p>The graphs above pull static JSON from the same directory as this HTML file.</p> 
+
+<h4>For a live feed, here is information on how to configure CORS and write a JSON endpoint for the <a href="https://github.com/christopheryork/repertoire-faceting">Repertoire faceted browser</a>.</h4> (For CFRP, these steps are already done.)
+
+<ol>
+
+<li>First, configure the Rails application for CORS support, as documented here: <a href="https://github.com/christopheryork/repertoire-faceting/blob/master/FAQ">https://github.com/christopheryork/repertoire-faceting/blob/master/FAQ</a>.</li>
+
+<li>Then, install the faceted browser in the application.  See the documentation here: <a href="https://github.com/christopheryork/repertoire-faceting/blob/master/INSTALL">https://github.com/christopheryork/repertoire-faceting/blob/master/INSTALL</a></li>
+
+</ol>
+  
+<h4>To use the faceted browser as endpoint for a JSON data feed:</h4>
+
+<p>Replace the ActiveRecord "where" clause with Repertoire Faceting's "refine" clause.</p>
+
+<i>Using only ActiveRecord:</i>
+
+<pre>
+  class PlayPerformancesController < ActionController::Base  
+  
+    def index
+      filter = params[:filter] || {}
+      render :json => Register.where(filter).joins(:register_plays)
+    end
+    
+  end
+</pre>
+
+<i>Using Repertoire Faceting, with HTTP cache headers:</i>
+
+<pre>
+  class PlayPerformancesController < ActionController::Base
+  
+    def index
+      filter = params[:filter] || {}
+      if stale?(Register.facet_cache_key)
+        render :json => Register.refine(filter).joins(:register_plays)
+      end
+    end
+  end
+</pre>
+
+<p>(The faceted browser exists to optimize facet value count queries. The result query, by design, is nearly identical to ActiveRecord in syntax and semantics.)</p>
+
+<h4>Live demo</h4>
+
+<p>Here is the same visualization running off a live feed from CFRP. (Will only work once Jamie has the CFRP faceted browser with data feed deployed on Heroku at http://facet-test.herokuapp.com/ - <a href="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)">check here</a>).</p>
+
+<p>High latency comes with serving such any large data set out of Rails - performance will be similar with native ActiveRecord and the faceted browser endpoints. However as these graphs show, HTTP caching results will provide good performance after the initial load (try refreshing the page).<p>
+  
+<p>New browser sessions will still incur first-time load latency. To alleviate this, you could install Rack::Cache and memcached or Varnish, as detailed <a href="https://devcenter.heroku.com/articles/rack-cache-memcached-rails31">here</a>.</p>
+
+<div class="multiples">
+<svg class="author_chart loading" 
+     title="Corneille"
+     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)"/>
+
+<svg class="author_chart loading"
+     title="Molière"
+     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Molière%20(Jean-Baptiste%20Poquelin%20dit)"/>
+
+<svg class="author_chart loading"
+     title="Voltaire"
+     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Voltaire%20(François-Marie%20Arouet%20dit)"/>
+</div>
+  
+<p><a href="yorkc@alum.mit.edu">Christopher York</a>, June 27 2014</p>
+
+<script>
+
+// See http://bl.ocks.org/mbostock/3885304 and http://bl.ocks.org/mbostock/1157787 for basic models
+
+var margin = {top: 20, right: 20, bottom: 30, left: 35},
+    width = 400 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+    
+// format used in Register.date field
+var format = d3.time.format("%Y-%m-%d");
+
+// default cache stamp: update cached JSON data feeds every week
+var cachestamp_format = d3.time.format("%Y-%U");
+
+var round = function(x, d) { return Math.floor(x / d) * d; };
+
+var svg = d3.select("body").selectAll(".author_chart")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+
+// to make sure each multiple has the same scale, we set them by hand; a more detailed example
+// would merge the data from all the multiples to derive the scales.
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .4)
+    .domain([1680, 1690, 1700, 1710, 1720, 1730, 1740, 1750, 1760, 1770, 1780, 1790]);
+
+var y = d3.scale.linear()
+    .range([height, 0])
+    .domain([0, 1000]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .ticks(8);
+
+svg.each( function(d, i) {
+
+  // this is a simple way to configure small multiples using HTML 5 data attributes.
+  var elem  = d3.select(this),
+      url   = elem.attr("data-url"),
+      title = elem.attr("title");
+
+  var g = elem.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  d3.json(url, function(err, data) {
+    
+    if (err) { throw err; };
+
+    elem.attr("class", "author_chart"); // remove the loading spinner
+    
+    // munge data returned into decade, count(register_performance) pairs
+    
+    // while we could aggregate the data on the server side, that would mean a new server alteration
+    // for each visualization (which subverts the data essay use case)
+    data = d3.nest()
+        .key(function (d) { return round(format.parse(d.date).getFullYear(), 10); })
+        .sortKeys(d3.ascending)
+        .rollup(function(play_performances) { return play_performances.length; })
+        .entries(data);
+        
+    // clean out bad data
+    data = data.filter(function (d) { return +d.key > 1500 && +d.key < 1900; });
+
+    g.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+      .append("text")
+        .attr("y", 30)
+        .attr("x", 175)
+        .style("text-anchor", "middle")
+        .text(title);
+
+    g.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 3)
+        .attr("dy", ".71em")
+        .style("text-anchor", "end")
+        .text("Performances");
+
+    g.selectAll(".bar")
+        .data(data)
+      .enter().append("rect")
+        .attr("class", "bar")
+        .attr("x", function(d) { return x(d.key); })
+        .attr("width", x.rangeBand())
+        .attr("y", function(d) { return y(d.values); })
+        .attr("height", function(d) { return height - y(d.values); });
+  });
+});
+
+</script>
+</body>
+</html>
