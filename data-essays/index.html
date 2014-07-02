@@ -117,24 +117,26 @@ body {
 
 <h4>Live demo</h4>
 
-<p>Here is the same visualization running off a live feed from CFRP. (Will only work once Jamie has the CFRP faceted browser with data feed deployed on Heroku at http://facet-test.herokuapp.com/ - <a href="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)">check here</a>).</p>
+<p>Here is the same visualization running off a live feed from CFRP. (Will only work once Jamie has the CFRP faceted browser with data feed deployed on Heroku at http://cfrp-new.herokuapp.com/ - <a href="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)">check here</a>).</p>
 
 <p>High latency comes with serving such any large data set out of Rails - performance will be similar with native ActiveRecord and the faceted browser endpoints. However as these graphs show, HTTP caching results will provide good performance after the initial load (try refreshing the page).<p>
   
 <p>New browser sessions will still incur first-time load latency. To alleviate this, you could install Rack::Cache and memcached or Varnish, as detailed <a href="https://devcenter.heroku.com/articles/rack-cache-memcached-rails31">here</a>.</p>
 
+<p>If your query runs longer than 30 sec, it will generally timeout; check Unicorn and Heroku settings. (The Molière dataset below is large enough that this occasionally happens.) To obtain good performance for long-running queries such as these, doing cache warming in a separate process is one option.</p>
+
 <div class="multiples">
 <svg class="author_chart loading" 
      title="Corneille"
-     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)"/>
+     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)"/>
 
 <svg class="author_chart loading"
      title="Molière"
-     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Molière%20(Jean-Baptiste%20Poquelin%20dit)"/>
+     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Molière%20(Jean-Baptiste%20Poquelin%20dit)"/>
 
 <svg class="author_chart loading"
      title="Voltaire"
-     data-url="http://facet-test.herokuapp.com/play_performances.json?filter[author1][]=Voltaire%20(François-Marie%20Arouet%20dit)"/>
+     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Voltaire%20(François-Marie%20Arouet%20dit)"/>
 </div>
   
 <p><a href="yorkc@alum.mit.edu">Christopher York</a>, June 27 2014</p>
