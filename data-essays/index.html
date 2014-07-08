@@ -54,7 +54,7 @@ body {
 
 <p><q>The goal is to have a few more well-documented examples of different applications of the faceted browser, conjoined with D3, which we could hand off to incoming RAs, so that they can pick this up and run with it.</q></p>
 
-<p>Here is an example of three "small multiples" D3 visualizations, each showing a JSON dataset produced by the faceted browser.  Each data set is limited only by play author - otherwise, the filtering and aggregation is done in D3.</p>
+<p>Here is an example of three "small multiples" D3 visualizations, each showing a JSON dataset produced by the faceted browser.  Each data set is limited only by play author1 (i.e. opening play's author in a double bill) - otherwise, the filtering and aggregation is done entirely in D3.</p>
 
 <div class="multiples">
   <svg class="author_chart loading"
@@ -117,29 +117,96 @@ body {
 
 <h4>Live demo</h4>
 
-<p>Here is the same visualization running off a live feed from CFRP. (Will only work once Jamie has the CFRP faceted browser with data feed deployed on Heroku at http://cfrp-new.herokuapp.com/ - <a href="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)">check here</a>).</p>
+<p>Here is the same visualization running off a live feed from CFRP. (Will only work once Jamie has the CFRP faceted browser with data feed deployed on Heroku at http://app.cfregisters.org - <a href="http://app.cfregisters.org/play_performances.json?filter[author1][]=Corneille%20(Pierre)&utf8=%25E2%259C%2593">check here</a>).</p>
 
-<p>High latency comes with serving such any large data set out of Rails - performance will be similar with native ActiveRecord and the faceted browser endpoints. However as these graphs show, HTTP caching results will provide good performance after the initial load (try refreshing the page).<p>
+<p>High latency comes with rendering any large data set in Rails - performance will be similar with native ActiveRecord and the faceted browser endpoints. The delays occur during JSON rendering rather than in ActiveRecord, so it is worth checking if newer versions of Rails have improved in this regard. In any case, as the lower graphs on this page show, HTTP caching results will provide good performance after the initial load (try refreshing this page.) The faceted browser has HTTP caching built in:
+
+<pre>
+    ...
+    if stale?(Register.facet_cache_key)
+      render :json => Register.refine(filter)
+    end
+</pre>
   
 <p>New browser sessions will still incur first-time load latency. To alleviate this, you could install Rack::Cache and memcached or Varnish, as detailed <a href="https://devcenter.heroku.com/articles/rack-cache-memcached-rails31">here</a>.</p>
 
-<p>If your query runs longer than 30 sec, it will generally timeout; check Unicorn and Heroku settings. (The Molière dataset below is large enough that this occasionally happens.) To obtain good performance for long-running queries such as these, doing cache warming in a separate process is one option.</p>
+<p>If your query runs longer than 30 sec, it will generally timeout; check Unicorn and Heroku settings. To obtain good performance for long-running queries such as these, doing cache warming in a separate process is one option.</p>
+
 
 <div class="multiples">
 <svg class="author_chart loading" 
      title="Corneille"
-     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Corneille%20(Pierre)"/>
+     data-url="http://app.cfregisters.org/play_performances.json?filter[author1][]=Corneille%20(Pierre)&utf8=%25E2%259C%2593"/>
 
 <svg class="author_chart loading"
      title="Molière"
-     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Molière%20(Jean-Baptiste%20Poquelin%20dit)"/>
+     data-url="http://app.cfregisters.org/play_performances.json?filter[author1][]=Moli%C3%A8re%20(Jean-Baptiste%20Poquelin%20dit)&utf8=%25E2%259C%2593"/>
 
 <svg class="author_chart loading"
      title="Voltaire"
-     data-url="http://cfrp-new.herokuapp.com/play_performances.json?filter[author1][]=Voltaire%20(François-Marie%20Arouet%20dit)"/>
+     data-url="http://app.cfregisters.org/play_performances.json?filter[author1][]=Voltaire%20(Fran%C3%A7ois-Marie%20Arouet%20dit)&utf8=%25E2%259C%2593"/>
 </div>
-  
-<p><a href="yorkc@alum.mit.edu">Christopher York</a>, June 27 2014</p>
+
+<h4>Special case large dataset solutions</h4>
+
+<p>1. If you can anticipate which columns of the dataset the visualizations will use, this is an easy way to reduce latency:</p>
+
+<pre>
+    ...
+    if stale?(Register.facet_cache_key)
+      render :json => Register.refine(filter), :only => [:id, :date]
+    end
+</pre>
+
+<p>2. Likewise, if you know what visualization queries are going to be issued, pre-warming a cache with the query is one option. See the documentation for Rack::Cache.</p>
+
+<p>3. I believe the best (and simplest) option is just to allow the user to download partial datasets in .gz format, then store and access the data separately (e.g. as for the visualizations at the top of this page). This solution has the added advantage that essay writers can be sure their graphs will not change if the CFRP database is later revised.<p>
+
+<p>Here is a rough sketch of one way to do this, deflating results and returning a "403 Forbidden" code if the user asks for too much data:</p>
+
+<p>In ./rackup.ru, install the gzip middleware before the application:</p>
+
+<pre>
+  require ::File.expand_path('../config/environment',  __FILE__)
+  use Rack::Deflater
+  run Cfrp::Application
+</pre>
+
+<p>In the controller, you can limit downloads to a given size, and force asset compression:</p>
+
+<pre>
+  def index
+    filter  = params[:filter] || {}
+    @result = Register.refine(filter)
+
+    if @result.count > 5000 then
+      render :nothing => true, :status => 403
+
+    elsif stale?(Register.facet_cache_key)
+      request.env['HTTP_ACCEPT_ENCODING'] = 'gzip'
+      render :json => @result
+    end
+  end
+</pre>
+
+<p>The user can then uncompress the file and place it locally with the data essay visualization.</p>
+
+<h4>Data cross-check:</h4>
+
+<p>The reports here could also be generated via raw SQL. Note we are only drilling down on the opening play by a given author (not following plays).</p>
+
+<pre>
+SELECT EXTRACT(DECADE FROM registers.date) * 10 AS decade, author, COUNT(register_id)
+  FROM plays
+  JOIN register_plays ON (plays.id = play_id)
+  JOIN registers      ON (registers.id = register_id)
+  WHERE plays.author IN ('Corneille (Pierre)', 'Molière (Jean-Baptiste Poquelin dit)', 'Voltaire (François-Marie Arouet dit)')
+    AND ordering = 1
+  GROUP BY author, decade
+  ORDER BY author, decade;
+</pre>
+
+<p><a href="yorkc@alum.mit.edu">Christopher York</a>, June 27 / July 7 2014</p>
 
 <script>
 
@@ -169,7 +236,7 @@ var x = d3.scale.ordinal()
 
 var y = d3.scale.linear()
     .range([height, 0])
-    .domain([0, 1000]);
+    .domain([0, 500]);
 
 var xAxis = d3.svg.axis()
     .scale(x)
@@ -236,7 +303,9 @@ svg.each( function(d, i) {
         .attr("x", function(d) { return x(d.key); })
         .attr("width", x.rangeBand())
         .attr("y", function(d) { return y(d.values); })
-        .attr("height", function(d) { return height - y(d.values); });
+        .attr("height", function(d) { return height - y(d.values); })
+        .append("svg:title")
+           .text(function(d) { return d.values; });
   });
 });
 
